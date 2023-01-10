@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.1/redux.js"></script>
+  <link rel="stylesheet" href="redux.css">
+  <title>Redux - Egoing</title>
+</head>
+<body>
+  <div id="subject" class="subject"></div>
+  <div id="TOC" class="toc"></div>
+  <div id="control" class="control"></div>
+  <div id="content" class="content"></div>
+
+
+  <script>
+    function  subject(){
+      document.querySelector("#subject").innerHTML = `
+        <head>
+          <h1>할일 목록</h1>
+          Today's Todo List
+        </head>
+        `
+    }
+    function TOC(){
+      // set li item using redux
+      console.log ( "TOC called")
+      var state = store.getState( );      
+
+      var LiTags = '';    
+      console.log( state )  ;
+      for ( i = 0 ; i < state.contents.length ; i ++) {
+        LiTags = LiTags + 
+        `<li><a onclick="
+            event.preventDefault();
+            var action = {type:'SELECT', id: ${state.contents[i].id} };
+            store.dispatch(action);
+          " 
+          href="${state.contents[i].id}" >
+          ${state.contents[i].title}
+          </a></li>`;
+        
+      }
+      
+      document.querySelector('#TOC').innerHTML = `      
+      <nav>
+        <ol>          
+          ${LiTags}
+        </ol>    
+      </nav>
+      `
+    }
+
+    function article() {
+      state = store.getState();      
+      if ( state.mode === 'create')
+        article_create( state );
+      else
+        article_view( state );
+    }
+    function article_view(state)
+    {
+      var i = 0;
+      var curTitle = '';
+      var curDescription = '';
+
+      while ( i < state.contents.length ) {
+        if ( state.contents[i].id == state.selected_id ){
+          curTitle = state.contents[i].title;
+          curDescription = state.contents[i].description;
+          break;
+        }
+        i ++;
+      }
+      console.log ( "article" + curTitle + curDescription );
+
+      document.querySelector('#content').innerHTML = `
+      <article>        
+        <h2>${curTitle}</h2>
+        ${curDescription}
+      </article>
+      `;
+    }
+    
+    function article_create(state)
+    {
+      var i = 0;
+      var curTitle = '';
+      var curDescription = '';
+
+
+      while ( i < state.contents.length ) {
+        if ( state.contents[i].id == state.selected_id ){
+          curTitle = state.contents[i].title;
+          curDescription = state.contents[i].description;
+          break;
+        }
+        i ++;
+      }
+      console.log ( "article" + curTitle + curDescription );
+
+      document.querySelector('#content').innerHTML = `
+      <article>        
+        <form onsubmit="
+          event.preventDefault();
+          var _title = this.title.value;
+          var _desc = this.description.value;
+          store.dispatch ( { type: 'CREATE', title: _title, description: _desc});
+
+        ">
+          <p>
+            <input type="text" name="title" placeholder="title"/>
+          </p>
+          <p>
+            <textarea name="description" placeholder="description"
+              value="" ></textarea>
+          </p>
+          <p>
+            <input type="submit" />          
+        </form>        
+      </article>
+      `;
+    }
+    
+    // Handling Create / Delete Control Rendering
+    function control() {      
+      document.querySelector( '#control').innerHTML = `
+        <ul>
+          <li>
+            <a onclick = "
+              event.preventDefault();
+              store.dispatch ( {type:'CHANGE_MODE', mode:'create'})
+            "
+            href="/create" >create</a></li>
+          <li>
+            <input 
+              onclick = "
+                event.preventDefault();
+                store.dispatch ( {type:'DELETE' })
+              "
+              type="button" value="delete">
+          </li>
+        </ul>
+      `;
+
+    }
+
+    function reducer ( state, action ){
+      if ( state == undefined ){
+        console.log( " reducer init : ")
+        return { 
+          max_id : 2,
+          mode : 'welcome',  // mode : read, create, welcome
+          selected_id: null,
+          contents: [
+            {id:1, title:'HTML', description:'HTML is first LI item'},
+            {id:2, title:'CSS', description:'CSS is first LI item'}
+          ]
+        }
+      }
+
+      switch ( action.type ){
+        case 'SELECT' : 
+          newState = Object.assign( 
+            {},state, 
+            {selected_id: action.id, mode: 'read'} )
+          break;
+        case 'CREATE':
+          var newContents = state.contents.concat();
+          newContents.push ( {id: state.max_id + 1, title:action.title, description: action.description});
+          newState = Object.assign( 
+            {},state, 
+            { 
+              max_id : state.max_id + 1,
+              id: state.max_id + 1,
+              contents: newContents,
+              mode: 'read'} );          
+          break;
+        case 'DELETE':
+          var newContents = [];
+          var i = 0;
+          while ( i < state.contents.length ){
+            if ( state.selected_id !== state.contents[i].id )
+            { 
+              newContents.push ( state.contents[i]);
+              console.log ( "compare :" + action.selected_id + ": id:"+ state.contents[i].id)
+            }
+             
+            i++;
+          }
+          newState = Object.assign ( 
+            {},state,
+            {
+              contents: newContents,
+              mode: 'welcome',
+              
+            }            
+          )
+          console.log ( "after Delete :" + state.selected_id + ": " + newContents)
+
+          break;
+        case 'UPDATE':
+          break;
+        case 'CHANGE_MODE':
+          newState = Object.assign ( {}, state, {mode:action.mode})
+          break;
+      }
+      
+      console.log ( "reducer :" + action, state, newState );
+      return newState;
+
+
+    }
+
+    var store = Redux.createStore( reducer );
+    store.subscribe( article );    
+    store.subscribe( TOC ); 
+
+    subject(); 
+    TOC();
+    control();
+    article();
+  </script>
+
+</body>
+</html>
